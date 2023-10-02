@@ -1,5 +1,5 @@
 <div id="header" align="center">
-  <img src="https://cdn.dribbble.com/users/1181072/screenshots/3990742/work-boy-simple-01.png" width="400"/>
+  <img src="https://cdn.dribbble.com/users/1181072/screenshots/3990742/work-boy-simple-01.png" width="600"/>
 </div>
 
 <!--
