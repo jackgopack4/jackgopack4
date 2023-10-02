@@ -1,7 +1,7 @@
 <div id="header" align="center">
   <img src="https://cdn.dribbble.com/users/1181072/screenshots/3990742/work-boy-simple-01.png" width="400"/>
+  <img src="https://komarev.com/ghpvc/?username=jackgopack4&style=flat-square&color=blue" alt=""/>
 </div>
-<img src="https://komarev.com/ghpvc/?username=jackgopack4&style=flat-square&color=blue" alt=""/>
 
 <!--
 **jackgopack4/jackgopack4** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
