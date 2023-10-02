@@ -1,5 +1,7 @@
 <div id="header" align="center">
   <img src="https://cdn.dribbble.com/users/1181072/screenshots/3990742/work-boy-simple-01.png" width="400"/>
+</div>
+<div id="views" align="center">
   <img src="https://komarev.com/ghpvc/?username=jackgopack4&style=flat-square&color=blue" alt=""/>
 </div>
 
