@@ -2,8 +2,6 @@
   <img src="https://cdn.dribbble.com/users/1181072/screenshots/3990742/work-boy-simple-01.png" width="100"/>
 </div>
 
-### Hi there 👋
-
 <!--
 **jackgopack4/jackgopack4** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
