@@ -31,6 +31,8 @@ def sanitizeBallots(ballots: List[int]) -> Optional[List[int]]:
 
 
 def initialVoteCount(sanitized_ballots: List[int], candidates: List[int]) -> dict:
+    """Given list of ballots and candidates, return dict with lists of indices
+    of first choice voters for the given candidates"""
     vote_count = {c: [] for c in candidates}  # O(M)
     for i, b in enumerate(sanitized_ballots):  # O(N)
         if b[-1] in vote_count:
@@ -43,6 +45,8 @@ def initialVoteCount(sanitized_ballots: List[int], candidates: List[int]) -> dic
 def findMinAndMaxVoterLists(
     vote_counts: dict, cur_num_votes: int
 ) -> (List[int], List[int], int, int):
+    """Given current dict of vote indices and total number of votes, return
+    the minimum vote candidate IDs and the number of votes"""
     max_vote_ids = []
     max_vote_number = -1
     min_vote_ids = []
