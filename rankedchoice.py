@@ -1,5 +1,4 @@
 from typing import Optional, List
-import heapq
 
 """
 ballot : [1, 2, 3], [2, 3]
@@ -31,12 +30,44 @@ def sanitizeBallots(ballots: List[int]) -> Optional[List[int]]:
         return None
 
 
+def initialVoteCount(sanitized_ballots: List[int], candidates: List[int]) -> dict:
+    vote_count = {c: [] for c in candidates}  # O(M)
+    for i, b in enumerate(sanitized_ballots):  # O(N)
+        if b[-1] in vote_count:
+            vote_count[b[-1]].append(i)
+        else:
+            vote_count[b[-1]] = [i]
+    return vote_count
+
+
+def findMinAndMaxVoterLists(
+    vote_counts: dict, cur_num_votes: int
+) -> (List[int], List[int], int, int):
+    max_vote_ids = []
+    max_vote_number = -1
+    min_vote_ids = []
+    min_vote_number = cur_num_votes + 1
+    for candidate_id, voter_ids in vote_counts.items():  # O(M)
+        num_votes = len(voter_ids)
+        if num_votes > max_vote_number:
+            max_vote_ids = [candidate_id]
+            max_vote_number = num_votes
+        elif num_votes == max_vote_number:
+            max_vote_ids.append(candidate_id)
+        if num_votes < min_vote_number:
+            min_vote_ids = [candidate_id]
+            min_vote_number = num_votes
+        elif num_votes == min_vote_number:
+            min_vote_ids.append(candidate_id)
+    return min_vote_ids, max_vote_ids, min_vote_number, max_vote_number
+
+
 def rankedChoiceVoting(
     ballots: List[int], candidates: Optional[List[int]] = [1, 2, 3, 4, 5, 6]
 ) -> Optional[int]:
     """implement ranked choice, taking into account empty ballots
     and multiple votes on one ballot, return ID of winner or None.
-    Overall complexity O(N*B + M*B + M^2 + M*N)"""
+    Overall complexity O(M*(N+B) + N*B + M^2)"""
     sanitized_ballots = sanitizeBallots(ballots)  # O(N*B)
     # print(f"sanitized_ballots for this run: {sanitized_ballots}")
     if sanitized_ballots is None:
@@ -45,18 +76,7 @@ def rankedChoiceVoting(
     # B: the number of votes per ballot
     # N: the number ballots/voters
     # M: The number of candidates
-    cur_first_choice_votes = {}
-    for c in candidates:  # O(M)
-        cur_first_choice_votes[c] = []
-    # all candidates passed in to vote dict, once a key is no longer in the dict,
-    # they are eliminated
-    for i, b in enumerate(sanitized_ballots):  # O(N)
-        cur_ballot_top_vote = b[-1]
-        # print(f"{type(cur_ballot_top_vote)}, {cur_ballot_top_vote}")
-        if cur_ballot_top_vote in cur_first_choice_votes:
-            cur_first_choice_votes[cur_ballot_top_vote].append(i)
-        else:
-            cur_first_choice_votes[cur_ballot_top_vote] = [i]
+    cur_first_choice_votes = initialVoteCount(sanitized_ballots, candidates)  # O(M + N)
     cur_num_votes = len(sanitized_ballots)
     # Begin voting round loop, up to M times for M candidates
     for round_number in range(len(candidates)):  # O(M*(B+M+N))
@@ -69,22 +89,12 @@ def rankedChoiceVoting(
             return list(cur_first_choice_votes.keys())[0]
 
         # else, need to find highest and lowest vote getter
-        max_vote_ids = []
-        max_vote_number = -1
-        min_vote_ids = []
-        min_vote_number = cur_num_votes + 1
-        for candidate_id, voter_ids in cur_first_choice_votes.items():  # O(M)
-            num_votes = len(voter_ids)
-            if num_votes > max_vote_number:
-                max_vote_ids = [candidate_id]
-                max_vote_number = num_votes
-            elif num_votes == max_vote_number:
-                max_vote_ids.append(candidate_id)
-            if num_votes < min_vote_number:
-                min_vote_ids = [candidate_id]
-                min_vote_number = num_votes
-            elif num_votes == min_vote_number:
-                min_vote_ids.append(candidate_id)
+        (
+            min_vote_ids,
+            max_vote_ids,
+            min_vote_number,
+            max_vote_number,
+        ) = findMinAndMaxVoterLists(cur_first_choice_votes, cur_num_votes)
 
         # now we have the candidate ids and number of votes for highest and
         # lowest vote-getters (we can eliminate all lowest vote-getters at once)
@@ -116,6 +126,7 @@ def rankedChoiceVoting(
                     vid_next_best_choice = sanitized_ballots[vid][-1]
                     cur_first_choice_votes[vid_next_best_choice].append(vid)
             remaining_votes = 0
+
             # need to retally the number of remaining votes
             for voter_ids in cur_first_choice_votes.values():  # O(M)
                 remaining_votes += len(voter_ids)
