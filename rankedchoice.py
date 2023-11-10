@@ -29,12 +29,12 @@ def sanitizeBallots(ballots: List[int]) -> Optional[List[int]]:
 
 
 def rankedChoiceVoting(
-    ballots: List[int], candidates: Optional[List[int]] = [1, 2, 3, 4, 5]
+    ballots: List[int], candidates: Optional[List[int]] = [1, 2, 3, 4, 5, 6]
 ) -> Optional[int]:
     """implement ranked choice, taking into account empty ballots
     and multiple votes on one ballot, return ID of winner or None"""
     sanitized_ballots = sanitizeBallots(ballots)
-    # print(sanitized_ballots)
+    # print(f"sanitized_ballots for this run: {sanitized_ballots}")
     if sanitized_ballots is None:
         return None
     # sanitized_ballots is the effective voting record for all future rounds
@@ -58,39 +58,47 @@ def rankedChoiceVoting(
             cur_first_choice_votes[cur_ballot_top_vote] = [i]
     cur_num_votes = len(sanitized_ballots)
     while not winner_found_or_no_ballots:  # O(M) O(B*N + M*(N+M+N*B))
+        # print(f"current top votes dict: {cur_first_choice_votes}")
         # now we have a dict with index of first choice voters
         # if that dict only has one entry, only one candidate remaining
         if len(cur_first_choice_votes.items()) == 1:
             return list(cur_first_choice_votes.keys())[0]
 
         # else, need to find highest and lowest vote getter
-        max_vote_id = -1
-        max_vote_number = 0
-        min_vote_id = -1
+        max_vote_ids = []
+        max_vote_number = -1
+        min_vote_ids = []
         min_vote_number = cur_num_votes + 1
-        seen_number_of_votes = set()
+        # track unique vote counts received by all candidates
+        # seen_number_of_votes = set()
         for candidate_id, voter_ids in cur_first_choice_votes.items():  # O(M)
             num_votes = len(voter_ids)
-            if num_votes not in seen_number_of_votes:
-                seen_number_of_votes.add(num_votes)
+            # if num_votes not in seen_number_of_votes:
+            # seen_number_of_votes.add(num_votes)
             if num_votes > max_vote_number:
-                max_vote_id = candidate_id
+                max_vote_ids = [candidate_id]
                 max_vote_number = num_votes
+            elif num_votes == max_vote_number:
+                max_vote_ids.append(candidate_id)
             if num_votes < min_vote_number:
-                min_vote_id = candidate_id
+                min_vote_ids = [candidate_id]
                 min_vote_number = num_votes
+            elif num_votes == min_vote_number:
+                min_vote_ids.append(candidate_id)
         # now we have the candidate id and number of votes for highest vote-getter
         if max_vote_number > (cur_num_votes / 2):
             # we have a winner
-            return max_vote_id
+            return max_vote_ids[0]
         elif (
-            len(seen_number_of_votes) == 1
+            max_vote_number == min_vote_number
         ):  # all candidates have same number of votes, cannot eliminate anyone
             return None
         else:
             # need to remove lowest vote getter from each ballot
-            voter_ids_to_reassign = cur_first_choice_votes[min_vote_id]
-            del cur_first_choice_votes[min_vote_id]
+            voter_ids_to_reassign = []
+            for min_id in min_vote_ids:
+                voter_ids_to_reassign.extend(cur_first_choice_votes[min_id])
+                del cur_first_choice_votes[min_id]
             # if their next votes are for eliminated candidates, keep looping until gone
             for vid in voter_ids_to_reassign:
                 del sanitized_ballots[vid][-1]
@@ -102,6 +110,11 @@ def rankedChoiceVoting(
                 if len(sanitized_ballots[vid]) > 0:
                     vid_next_best_choice = sanitized_ballots[vid][-1]
                     cur_first_choice_votes[vid_next_best_choice].append(vid)
+            remaining_votes = 0
+            # need to retally the number of remaining votes
+            for voter_ids in cur_first_choice_votes.values():
+                remaining_votes += len(voter_ids)
+            cur_num_votes = remaining_votes
 
     return 0
 
@@ -109,6 +122,9 @@ def rankedChoiceVoting(
 test_ballots_1 = [[1], [1], [2], [2], [], [3, 4, 5], [5, 5, 4, 4, 3, 4]]
 test_ballots_2 = [[1], [1], [2], [], [3, 4, 5]]
 test_ballots_3 = [[]]
-print(rankedChoiceVoting(test_ballots_1))
-print(rankedChoiceVoting(test_ballots_2))
-print(rankedChoiceVoting(test_ballots_3))
+test_run_1 = rankedChoiceVoting(test_ballots_1)
+test_run_2 = rankedChoiceVoting(test_ballots_2)
+test_run_3 = rankedChoiceVoting(test_ballots_3)
+print(f"test 1, expected: None, actual: {test_run_1}\n")
+print(f"test 2, expected: 1,    actual: {test_run_2}\n")
+print(f"test 3, expected: None, actual: {test_run_3}\n")
