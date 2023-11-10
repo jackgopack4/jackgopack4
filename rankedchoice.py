@@ -28,7 +28,9 @@ def sanitizeBallots(ballots: List[int]) -> Optional[List[int]]:
         return None
 
 
-def rankedChoiceVoting(ballots: List[int]) -> Optional[int]:
+def rankedChoiceVoting(
+    ballots: List[int], candidates: Optional[List[int]] = [1, 2, 3, 4, 5]
+) -> Optional[int]:
     """implement ranked choice, taking into account empty ballots
     and multiple votes on one ballot, return ID of winner or None"""
     sanitized_ballots = sanitizeBallots(ballots)
@@ -40,28 +42,35 @@ def rankedChoiceVoting(ballots: List[int]) -> Optional[int]:
     # N: the number ballots
     # M: The number of candidates
     winner_found_or_no_ballots = False
+    cur_first_choice_votes = {}
+    for c in candidates:
+        cur_first_choice_votes[
+            c
+        ] = (
+            []
+        )  # all candidates passed in, once a key is no longer in the dict they are eliminated
+    for i, b in enumerate(sanitized_ballots):
+        cur_ballot_top_vote = b[-1]
+        # print(f"{type(cur_ballot_top_vote)}, {cur_ballot_top_vote}")
+        if cur_ballot_top_vote in cur_first_choice_votes:
+            cur_first_choice_votes[cur_ballot_top_vote].append(i)
+        else:
+            cur_first_choice_votes[cur_ballot_top_vote] = [i]
+    cur_num_votes = len(sanitized_ballots)
     while not winner_found_or_no_ballots:  # O(M) O(B*N + M*(N+M+N*B))
-        cur_first_choice_votes = {}
-        for b in sanitized_ballots:
-            cur_ballot_top_vote = b[-1]
-            # print(f"{type(cur_ballot_top_vote)}, {cur_ballot_top_vote}")
-            if cur_ballot_top_vote in cur_first_choice_votes:
-                cur_first_choice_votes[cur_ballot_top_vote] += 1
-            else:
-                cur_first_choice_votes[cur_ballot_top_vote] = 1
-        # now we have a dict with number of first choice votes
+        # now we have a dict with index of first choice voters
         # if that dict only has one entry, only one candidate remaining
         if len(cur_first_choice_votes.items()) == 1:
             return list(cur_first_choice_votes.keys())[0]
 
         # else, need to find highest and lowest vote getter
-        cur_num_votes = len(sanitized_ballots)
         max_vote_id = -1
         max_vote_number = 0
         min_vote_id = -1
         min_vote_number = cur_num_votes + 1
         seen_number_of_votes = set()
-        for candidate_id, num_votes in cur_first_choice_votes.items():  # O(M)
+        for candidate_id, voter_ids in cur_first_choice_votes.items():  # O(M)
+            num_votes = len(voter_ids)
             if num_votes not in seen_number_of_votes:
                 seen_number_of_votes.add(num_votes)
             if num_votes > max_vote_number:
@@ -76,17 +85,23 @@ def rankedChoiceVoting(ballots: List[int]) -> Optional[int]:
             return max_vote_id
         elif (
             len(seen_number_of_votes) == 1
-        ):  # all candidates have same number of votes,
-            # cannot eliminate anyone
+        ):  # all candidates have same number of votes, cannot eliminate anyone
             return None
         else:
             # need to remove lowest vote getter from each ballot
-            for i in range(len(sanitized_ballots) - 1, -1, -1):  # O(N)
-                if sanitized_ballots[i][-1] == min_vote_id:
-                    del sanitized_ballots[i][-1]
-                    if len(sanitized_ballots[i]) == 0:
-                        del sanitized_ballots[i]
-            # now new ballots has lowest vote getter removed
+            voter_ids_to_reassign = cur_first_choice_votes[min_vote_id]
+            del cur_first_choice_votes[min_vote_id]
+            # if their next votes are for eliminated candidates, keep looping until gone
+            for vid in voter_ids_to_reassign:
+                del sanitized_ballots[vid][-1]
+                while (
+                    len(sanitized_ballots[vid]) > 0
+                    and sanitized_ballots[vid][-1] not in cur_first_choice_votes
+                ):
+                    del sanitized_ballots[vid][-1]
+                if len(sanitized_ballots[vid]) > 0:
+                    vid_next_best_choice = sanitized_ballots[vid][-1]
+                    cur_first_choice_votes[vid_next_best_choice].append(vid)
 
     return 0
 
