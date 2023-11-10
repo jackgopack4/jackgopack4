@@ -9,9 +9,12 @@ ballot : [1, 2, 3], [2, 3]
 
 
 def sanitizeBallots(ballots: List[int]) -> Optional[List[int]]:
-    """Sanitize ballots for empty or duplicate votes,
-    return in opposite order for easy indexing of top vote"""
+    """Sanitize ballots for empty or duplicate votes, return in opposite order
+    for easy indexing of top vote. O(N * B) where N is number of ballots, B is
+    number of votes per ballot"""
     res = []
+    # Need to check each ballot for empty or duplicate entries, utilize set
+    # for duplicate checking and list for maintaing order of remaining items
     for b in ballots:
         if len(b) > 0:
             seen = set()
@@ -32,24 +35,22 @@ def rankedChoiceVoting(
     ballots: List[int], candidates: Optional[List[int]] = [1, 2, 3, 4, 5, 6]
 ) -> Optional[int]:
     """implement ranked choice, taking into account empty ballots
-    and multiple votes on one ballot, return ID of winner or None"""
-    sanitized_ballots = sanitizeBallots(ballots)
+    and multiple votes on one ballot, return ID of winner or None.
+    Overall complexity O(N*B + M*B + M^2 + M*N)"""
+    sanitized_ballots = sanitizeBallots(ballots)  # O(N*B)
     # print(f"sanitized_ballots for this run: {sanitized_ballots}")
     if sanitized_ballots is None:
         return None
     # sanitized_ballots is the effective voting record for all future rounds
-    # B: the average number of votes per ballot
-    # N: the number ballots
+    # B: the number of votes per ballot
+    # N: the number ballots/voters
     # M: The number of candidates
-    winner_found_or_no_ballots = False
     cur_first_choice_votes = {}
-    for c in candidates:
-        cur_first_choice_votes[
-            c
-        ] = (
-            []
-        )  # all candidates passed in, once a key is no longer in the dict they are eliminated
-    for i, b in enumerate(sanitized_ballots):
+    for c in candidates:  # O(M)
+        cur_first_choice_votes[c] = []
+    # all candidates passed in to vote dict, once a key is no longer in the dict,
+    # they are eliminated
+    for i, b in enumerate(sanitized_ballots):  # O(N)
         cur_ballot_top_vote = b[-1]
         # print(f"{type(cur_ballot_top_vote)}, {cur_ballot_top_vote}")
         if cur_ballot_top_vote in cur_first_choice_votes:
@@ -57,8 +58,11 @@ def rankedChoiceVoting(
         else:
             cur_first_choice_votes[cur_ballot_top_vote] = [i]
     cur_num_votes = len(sanitized_ballots)
-    while not winner_found_or_no_ballots:  # O(M) O(B*N + M*(N+M+N*B))
+    # Begin voting round loop, up to M times for M candidates
+    for round_number in range(len(candidates)):  # O(M*(B+M+N))
+        # print(f"starting voting round {round_number+1}:\n")
         # print(f"current top votes dict: {cur_first_choice_votes}")
+
         # now we have a dict with index of first choice voters
         # if that dict only has one entry, only one candidate remaining
         if len(cur_first_choice_votes.items()) == 1:
@@ -69,12 +73,8 @@ def rankedChoiceVoting(
         max_vote_number = -1
         min_vote_ids = []
         min_vote_number = cur_num_votes + 1
-        # track unique vote counts received by all candidates
-        # seen_number_of_votes = set()
         for candidate_id, voter_ids in cur_first_choice_votes.items():  # O(M)
             num_votes = len(voter_ids)
-            # if num_votes not in seen_number_of_votes:
-            # seen_number_of_votes.add(num_votes)
             if num_votes > max_vote_number:
                 max_vote_ids = [candidate_id]
                 max_vote_number = num_votes
@@ -85,38 +85,43 @@ def rankedChoiceVoting(
                 min_vote_number = num_votes
             elif num_votes == min_vote_number:
                 min_vote_ids.append(candidate_id)
-        # now we have the candidate id and number of votes for highest vote-getter
+
+        # now we have the candidate ids and number of votes for highest and
+        # lowest vote-getters (we can eliminate all lowest vote-getters at once)
         if max_vote_number > (cur_num_votes / 2):
-            # we have a winner
+            # we have a vote getter with actual majority
             return max_vote_ids[0]
-        elif (
-            max_vote_number == min_vote_number
-        ):  # all candidates have same number of votes, cannot eliminate anyone
+        elif max_vote_number == min_vote_number:
+            # all candidates have same number of votes, cannot eliminate anyone
             return None
-        else:
-            # need to remove lowest vote getter from each ballot
+        else:  # All the operations in this else block total O(B+M+N)
+            # need to find all voters who voted for the lowest vote-getter(s)
+            # and then eliminate those candidates from the list
             voter_ids_to_reassign = []
-            for min_id in min_vote_ids:
+            for min_id in min_vote_ids:  # O(M)
                 voter_ids_to_reassign.extend(cur_first_choice_votes[min_id])
                 del cur_first_choice_votes[min_id]
-            # if their next votes are for eliminated candidates, keep looping until gone
-            for vid in voter_ids_to_reassign:
+
+            for vid in voter_ids_to_reassign:  # O(N)
                 del sanitized_ballots[vid][-1]
+                # If the current voter's next votes were for eliminated candidates,
+                # continue to delete their next votes until getting their choice or they
+                # have no more votes left
                 while (
                     len(sanitized_ballots[vid]) > 0
                     and sanitized_ballots[vid][-1] not in cur_first_choice_votes
-                ):
+                ):  # O(B)
                     del sanitized_ballots[vid][-1]
                 if len(sanitized_ballots[vid]) > 0:
                     vid_next_best_choice = sanitized_ballots[vid][-1]
                     cur_first_choice_votes[vid_next_best_choice].append(vid)
             remaining_votes = 0
             # need to retally the number of remaining votes
-            for voter_ids in cur_first_choice_votes.values():
+            for voter_ids in cur_first_choice_votes.values():  # O(M)
                 remaining_votes += len(voter_ids)
             cur_num_votes = remaining_votes
-
-    return 0
+    # If we get here, that means no one won after num_candidates rounds, so no one wins
+    return None
 
 
 test_ballots_1 = [[1], [1], [2], [2], [], [3, 4, 5], [5, 5, 4, 4, 3, 4]]
